@@ -1,50 +1,64 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import * as authApi from '../api/auth'
+import { createContext, useContext, useEffect, useState } from "react";
+import { authApi } from "../api/client";
 
-const AuthContext = createContext(null)
-const STORAGE_KEY = 'groove.user'
+const AuthContext = createContext(null);
+const STORAGE_KEY = "waveline_user";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  })
+  const [user, setUser] = useState(null);
+  const [ready, setReady] = useState(false);
 
-  const persist = (u) => {
-    setUser(u)
-    if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u))
-    else localStorage.removeItem(STORAGE_KEY)
+  useEffect(() => {
+    // The backend has no "/me" endpoint, so we trust the last known session
+    // (stored client-side) and let any 401 from a real request log us out.
+    const cached = localStorage.getItem(STORAGE_KEY);
+    if (cached) {
+      try {
+        setUser(JSON.parse(cached));
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+    setReady(true);
+  }, []);
+
+  function persist(u) {
+    setUser(u);
+    if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    else localStorage.removeItem(STORAGE_KEY);
   }
 
-  const login = useCallback(async (identifier, password) => {
-    const { data } = await authApi.login({ identifier, password })
-    persist(data.user)
-    return data.user
-  }, [])
+  async function login(payload) {
+    const { data } = await authApi.login(payload);
+    persist(data.user);
+    return data.user;
+  }
 
-  const register = useCallback(async (username, email, password, role) => {
-    const { data } = await authApi.register({ username, email, password, role })
-    persist(data.user)
-    return data.user
-  }, [])
+  async function register(payload) {
+    const { data } = await authApi.register(payload);
+    persist(data.user);
+    return data.user;
+  }
 
-  const logout = useCallback(async () => {
+  async function logout() {
     try {
-      await authApi.logout()
+      await authApi.logout();
     } finally {
-      persist(null)
+      persist(null);
     }
-  }, [])
+  }
+
+  function forceLogout() {
+    persist(null);
+  }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, ready, login, register, logout, forceLogout }}>
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider')
-  return ctx
+  return useContext(AuthContext);
 }

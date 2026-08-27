@@ -1,53 +1,57 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Sidebar() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
+  async function handleLogout() {
+    await logout();
+    navigate("/login");
   }
+
+  const initial = (user?.username || "?").charAt(0).toUpperCase();
 
   return (
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-mark" />
-        <div>
-          <div className="brand-name">Groove</div>
-          <div className="brand-tag">Stream / Deck</div>
+        <div className="brand-name">
+          Wave<em>line</em>
         </div>
       </div>
 
-      <nav className="nav-links">
-        {user?.role === 'user' && (
-          <>
-            <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              Tracks
-            </NavLink>
-            <NavLink to="/albums" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              Albums
-            </NavLink>
-          </>
-        )}
-        {user?.role === 'artist' && (
-          <NavLink to="/upload" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            Upload
-          </NavLink>
-        )}
-      </nav>
+      <div className="nav-group">
+        <div className="nav-label">Listen</div>
+        <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+          <span className="nav-icon">◎</span> Library
+        </NavLink>
+        <NavLink to="/albums" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+          <span className="nav-icon">▦</span> Albums
+        </NavLink>
+      </div>
 
-      <div className="sidebar-footer">
-        {user && (
-          <>
-            <span className="role-pill">{user.role}</span>
-            <button className="logout-btn" onClick={handleLogout}>
-              {user.username} · Sign out
-            </button>
-          </>
-        )}
+      {user?.role === "artist" && (
+        <div className="nav-group">
+          <div className="nav-label">Studio</div>
+          <NavLink to="/upload" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            <span className="nav-icon">▲</span> Upload
+          </NavLink>
+        </div>
+      )}
+
+      <div className="sidebar-foot">
+        <div className="user-chip">
+          <div className="user-avatar">{initial}</div>
+          <div className="user-meta">
+            <div className="user-name">{user?.username}</div>
+            <div className="user-role">{user?.role}</div>
+          </div>
+        </div>
+        <button className="logout-btn" onClick={handleLogout}>
+          Sign out
+        </button>
       </div>
     </aside>
-  )
+  );
 }

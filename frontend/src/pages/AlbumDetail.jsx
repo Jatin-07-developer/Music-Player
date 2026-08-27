@@ -1,50 +1,85 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import * as musicApi from '../api/music'
-import TrackRow from '../components/TrackRow'
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { musicApi } from "../api/client";
+import TrackRow from "../components/TrackRow";
+import { coverGradient } from "../utils/cover";
 
 export default function AlbumDetail() {
-  const { albumId } = useParams()
-  const [album, setAlbum] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { albumId } = useParams();
+  const [album, setAlbum] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
+    let alive = true;
+    setLoading(true);
     musicApi
       .getAlbumById(albumId)
-      .then(({ data }) => setAlbum(data.album))
-      .catch((err) => setError(err.response?.data?.message || 'Could not load this album.'))
-      .finally(() => setLoading(false))
-  }, [albumId])
+      .then(({ data }) => alive && setAlbum(data.album))
+      .catch((e) => alive && setErr(e.response?.data?.message || "Couldn't load this album."))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [albumId]);
 
-  if (loading) return <p className="status-msg">Loading album…</p>
-  if (error) return <p className="status-msg error">{error}</p>
-  if (!album) return null
+  if (loading) {
+    return (
+      <div className="empty-state">
+        <div className="spinner" style={{ margin: "0 auto 14px" }} />
+        Dropping the needle…
+      </div>
+    );
+  }
 
-  const tracks = (album.musics || []).map((m) => ({
-    id: m._id,
-    title: m.title,
-    uri: m.uri,
-    artist: album.artist?.username || 'Unknown artist',
-  }))
+  if (err || !album) {
+    return (
+      <div className="empty-state">
+        <div className="needle">✕</div>
+        {err || "Album not found."}
+        <div style={{ marginTop: 16 }}>
+          <Link to="/albums" className="btn btn-ghost">
+            ← Back to albums
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const musics = album.musics || [];
 
   return (
     <div>
-      <Link to="/albums" className="page-eyebrow" style={{ textDecoration: 'none' }}>
-        ← Back to albums
-      </Link>
-      <h1 className="page-title">{album.title}</h1>
-      <p className="page-sub">{album.artist?.username || 'Unknown artist'}</p>
+      <div style={{ display: "flex", gap: 26, alignItems: "flex-end", marginBottom: 30 }}>
+        <div
+          className="album-sleeve"
+          style={{ width: 180, height: 180, background: coverGradient(album.title + album._id) }}
+        >
+          <div className="album-vinyl-peek" />
+        </div>
+        <div>
+          <p className="page-eyebrow">Album</p>
+          <h1 className="page-title" style={{ fontSize: 38, marginBottom: 6 }}>
+            {album.title}
+          </h1>
+          <p className="page-sub" style={{ margin: 0 }}>
+            {album.artist?.username || "Unknown artist"} · {musics.length} track{musics.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
 
-      {tracks.length === 0 ? (
-        <div className="empty-state">This album has no tracks yet.</div>
+      {musics.length === 0 ? (
+        <div className="empty-state">
+          <div className="needle">♪</div>
+          No tracks on this pressing yet.
+        </div>
       ) : (
-        <div className="tracklist">
-          {tracks.map((t, i) => (
-            <TrackRow key={t.id} index={i} track={t} />
+        <div className="track-list">
+          {musics.map((m, i) => (
+            <TrackRow key={m._id} index={i} music={{ ...m, artist: m.artist || album.artist }} queue={musics} />
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }

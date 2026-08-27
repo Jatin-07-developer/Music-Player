@@ -1,44 +1,53 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import * as musicApi from '../api/music'
+import { useEffect, useState } from "react";
+import { musicApi } from "../api/client";
+import AlbumCard from "../components/AlbumCard";
 
 export default function Albums() {
-  const [albums, setAlbums] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [albums, setAlbums] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
+    let alive = true;
     musicApi
       .getAllAlbums()
-      .then(({ data }) => setAlbums(data.albums))
-      .catch((err) => setError(err.response?.data?.message || 'Could not load albums.'))
-      .finally(() => setLoading(false))
-  }, [])
+      .then(({ data }) => alive && setAlbums(data.albums || []))
+      .catch((e) => alive && setErr(e.response?.data?.message || "Couldn't load albums."))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <div>
-      <p className="page-eyebrow">Collections</p>
+      <p className="page-eyebrow">The crate</p>
       <h1 className="page-title">Albums</h1>
-      <p className="page-sub">Full releases, grouped by artist.</p>
+      <p className="page-sub">Full-length pressings from every artist on Waveline.</p>
 
-      {loading && <p className="status-msg">Loading albums…</p>}
-      {error && <p className="status-msg error">{error}</p>}
+      {loading && (
+        <div className="empty-state">
+          <div className="spinner" style={{ margin: "0 auto 14px" }} />
+          Flipping through the crate…
+        </div>
+      )}
 
-      {!loading && !error && albums.length === 0 && (
-        <div className="empty-state">No albums yet.</div>
+      {!loading && err && <div className="empty-state">{err}</div>}
+
+      {!loading && !err && albums.length === 0 && (
+        <div className="empty-state">
+          <div className="needle">♫</div>
+          No albums pressed yet.
+        </div>
       )}
 
       {!loading && albums.length > 0 && (
         <div className="album-grid">
           {albums.map((a) => (
-            <Link key={a._id} to={`/albums/${a._id}`} className="album-card">
-              <div className="album-cover" />
-              <div className="album-name">{a.title}</div>
-              <div className="album-artist">{a.artist?.username || 'Unknown artist'}</div>
-            </Link>
+            <AlbumCard key={a._id} album={a} />
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }

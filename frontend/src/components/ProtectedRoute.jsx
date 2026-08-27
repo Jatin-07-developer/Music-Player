@@ -1,12 +1,20 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-// role: 'user' | 'artist' | undefined (any authenticated role)
-export default function ProtectedRoute({ role, children }) {
-  const { user } = useAuth()
+export default function ProtectedRoute({ children, requireRole }) {
+  const { user, ready } = useAuth();
 
-  if (!user) return <Navigate to="/login" replace />
-  if (role && user.role !== role) return <Navigate to="/" replace />
+  if (!ready) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        <span>WARMING UP THE TUBES…</span>
+      </div>
+    );
+  }
 
-  return children
+  if (!user) return <Navigate to="/login" replace />;
+  if (requireRole && user.role !== requireRole) return <Navigate to="/" replace />;
+
+  return children;
 }

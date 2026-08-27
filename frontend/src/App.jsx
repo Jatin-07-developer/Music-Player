@@ -1,37 +1,56 @@
-import { Routes, Route } from 'react-router-dom'
-import { useAuth } from './context/AuthContext'
-import Sidebar from './components/Sidebar'
-import PlayerBar from './components/PlayerBar'
-import ProtectedRoute from './components/ProtectedRoute'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Home from './pages/Home'
-import Albums from './pages/Albums'
-import AlbumDetail from './pages/AlbumDetail'
-import Upload from './pages/Upload'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { PlayerProvider } from "./context/PlayerContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Sidebar from "./components/Sidebar";
+import PlayerBar from "./components/PlayerBar";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import Albums from "./pages/Albums";
+import AlbumDetail from "./pages/AlbumDetail";
+import Upload from "./pages/Upload";
 
 function AppShell({ children }) {
   return (
     <div className="shell">
       <Sidebar />
-      <main className="main">{children}</main>
+      <main className="shell-main">{children}</main>
       <PlayerBar />
     </div>
-  )
+  );
 }
 
-export default function App() {
-  const { user } = useAuth()
+function RedirectIfAuthed({ children }) {
+  const { user, ready } = useAuth();
+  if (!ready) return null;
+  if (user) return <Navigate to="/" replace />;
+  return children;
+}
 
+function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-
+      <Route
+        path="/login"
+        element={
+          <RedirectIfAuthed>
+            <Login />
+          </RedirectIfAuthed>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <RedirectIfAuthed>
+            <Register />
+          </RedirectIfAuthed>
+        }
+      />
       <Route
         path="/"
         element={
-          <ProtectedRoute role="user">
+          <ProtectedRoute>
             <AppShell>
               <Home />
             </AppShell>
@@ -41,7 +60,7 @@ export default function App() {
       <Route
         path="/albums"
         element={
-          <ProtectedRoute role="user">
+          <ProtectedRoute>
             <AppShell>
               <Albums />
             </AppShell>
@@ -51,7 +70,7 @@ export default function App() {
       <Route
         path="/albums/:albumId"
         element={
-          <ProtectedRoute role="user">
+          <ProtectedRoute>
             <AppShell>
               <AlbumDetail />
             </AppShell>
@@ -61,26 +80,25 @@ export default function App() {
       <Route
         path="/upload"
         element={
-          <ProtectedRoute role="artist">
+          <ProtectedRoute requireRole="artist">
             <AppShell>
               <Upload />
             </AppShell>
           </ProtectedRoute>
         }
       />
-
-      <Route
-        path="*"
-        element={
-          user ? (
-            <AppShell>
-              <p>Page not found.</p>
-            </AppShell>
-          ) : (
-            <Login />
-          )
-        }
-      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <PlayerProvider>
+        <div className="grain" />
+        <AppRoutes />
+      </PlayerProvider>
+    </AuthProvider>
+  );
 }

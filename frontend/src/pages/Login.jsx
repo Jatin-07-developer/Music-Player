@@ -1,69 +1,78 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ identifier: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  function update(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      await login(identifier, password)
-      navigate('/')
+      const isEmail = form.identifier.includes("@");
+      await login({
+        [isEmail ? "email" : "username"]: form.identifier,
+        password: form.password,
+      });
+      navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Try again.')
+      setError(err.response?.data?.message || "Couldn't sign you in. Check your details.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
-    <div className="auth-wrap">
-      <div className="auth-card">
-        <div className="brand-mark" style={{ width: 34, height: 34, marginBottom: 14 }} />
-        <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-sub">Sign in to pick up where you left off.</p>
-
-        {error && <div className="error-banner">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="identifier">Username or email</label>
-            <input
-              id="identifier"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              autoComplete="username"
-              required
-            />
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <div className="auth-brand">
+          <div className="brand-mark" />
+          <div className="brand-name">
+            Wave<em>line</em>
           </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </div>
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+        </div>
+        <h1 className="auth-title">Welcome back on air</h1>
+        <p className="auth-sub">Sign in to pick up where the needle left off.</p>
 
-        <p className="auth-switch">
-          New here? <Link to="/register">Create an account</Link>
-        </p>
-      </div>
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="field">
+          <label>Username or email</label>
+          <input
+            required
+            value={form.identifier}
+            onChange={(e) => update("identifier", e.target.value)}
+            placeholder="dj-amara"
+          />
+        </div>
+        <div className="field">
+          <label>Password</label>
+          <input
+            required
+            type="password"
+            value={form.password}
+            onChange={(e) => update("password", e.target.value)}
+            placeholder="••••••••"
+          />
+        </div>
+
+        <button className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
+          {loading ? "Tuning in…" : "Sign in"}
+        </button>
+
+        <div className="auth-switch">
+          New to Waveline? <Link to="/register">Create an account</Link>
+        </div>
+      </form>
     </div>
-  )
+  );
 }
